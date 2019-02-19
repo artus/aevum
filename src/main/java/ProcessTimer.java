@@ -1,12 +1,9 @@
-import jdk.nashorn.internal.objects.PrototypeObject;
 import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -15,32 +12,38 @@ import java.util.function.Supplier;
 /**
  * A ProcessTimer times the execution of a Runnable.
  */
-public class ProcessTimer implements TimerLifecycle {
+public class ProcessTimer implements TimerLifecycle<ProcessTimer> {
 
-    private Consumer<ProcessTimer> onStart;
-    private Consumer<ProcessTimer> onStop;
+    private Consumer<ProcessTimer> onStart = processTimer -> {
+    };
+    private Consumer<ProcessTimer> onStop = processTimer -> {
+    };
 
     private Instant start;
     private Instant stop;
 
-    private boolean logStart  = true;
+    private boolean logStart = true;
     private boolean logStop = true;
 
     @Override
-    public void onStart(Consumer<ProcessTimer> toExecuteOnStart) {
+    public ProcessTimer onStart(Consumer<ProcessTimer> toExecuteOnStart) {
         this.setOnStart(toExecuteOnStart);
+        return this;
     }
 
     @Override
-    public void onStop(Consumer<ProcessTimer> toExecuteOnEnd) {
+    public ProcessTimer onStop(Consumer<ProcessTimer> toExecuteOnEnd) {
         this.setOnStop(toExecuteOnEnd);
+        return this;
     }
 
+    @Override
     public void start() {
-        this.setStart(Instant.now());
         this.getOnStart().accept(this);
+        this.setStart(Instant.now());
     }
 
+    @Override
     public void stop() {
         this.setStop(Instant.now());
         this.getOnStop().accept(this);
@@ -55,11 +58,18 @@ public class ProcessTimer implements TimerLifecycle {
         return toReturn;
     }
 
+    public void time(Runnable toExecute) {
+
+        this.start();
+        toExecute.run();
+        this.stop();
+    }
+
     public Duration getDuration() {
 
         if (!this.isStarted()) throw new IllegalStateException("ProcessTimer not started yet.");
-        if (this.getStop() == null) return Duration.between(this.getStart(), Instant.now());
-        return Duration.between(this.getStart(), this.getStart());
+        if (this.isRunning()) return Duration.between(this.getStart(), Instant.now());
+        return Duration.between(this.getStart(), this.getStop());
     }
 
     public boolean isStarted() {
@@ -71,6 +81,6 @@ public class ProcessTimer implements TimerLifecycle {
     }
 
     public boolean isRunning() {
-        return this.isStarted() && !this.isStarted();
+        return this.isStarted() && !this.isStopped();
     }
 }

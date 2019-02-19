@@ -1,8 +1,12 @@
-import java.time.Instant;
 import java.util.function.Consumer;
 
-public interface TimerLifecycle {
+public interface TimerLifecycle<E> {
 
-    void onStart(Consumer<ProcessTimer> toExecuteOnStart);
-    void onStop(Consumer<ProcessTimer> toExecuteOnEnd);
+    void start();
+
+    void stop();
+
+    E onStart(Consumer<E> toExecuteOnStart);
+
+    E onStop(Consumer<E> toExecuteOnEnd);
 }
